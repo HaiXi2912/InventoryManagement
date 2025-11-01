@@ -55,22 +55,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - id: check
+        name: Check admin-frontend exists
+        run: |
+          if [ ! -f package.json ]; then
+            echo "package.json missing, skip admin build"; exit 1;
+          fi
+        shell: bash
+        continue-on-error: true
+
       - name: Enable corepack (pnpm)
+        if: steps.check.outcome == 'success'
         run: corepack enable
 
       - name: Setup Node
+        if: steps.check.outcome == 'success'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
       - name: Install
+        if: steps.check.outcome == 'success'
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        if: steps.check.outcome == 'success'
         run: pnpm build
 
       - name: Upload dist
+        if: steps.check.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: admin-frontend-dist
@@ -85,22 +99,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - id: check
+        name: Check shop-frontend exists
+        run: |
+          if [ ! -f package.json ]; then
+            echo "package.json missing, skip shop build"; exit 1;
+          fi
+        shell: bash
+        continue-on-error: true
+
       - name: Enable corepack (pnpm)
+        if: steps.check.outcome == 'success'
         run: corepack enable
 
       - name: Setup Node
+        if: steps.check.outcome == 'success'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
       - name: Install
+        if: steps.check.outcome == 'success'
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        if: steps.check.outcome == 'success'
         run: pnpm build
 
       - name: Upload dist
+        if: steps.check.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: shop-frontend-dist
