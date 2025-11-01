@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菜单调试页面</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; }
+        .title { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #333; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        .btn { padding: 8px 16px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>进销存管理系统 - 菜单调试</h1>
+    
+    <div class="section">
+        <div class="title">配置信息</div>
+        <button class="btn" onclick="checkConfig()">检查配置</button>
+        <pre id="config-output"></pre>
+    </div>
+
+    <div class="section">
+        <div class="title">路由数据</div>
+        <button class="btn" onclick="checkRoutes()">检查路由</button>
+        <pre id="routes-output"></pre>
+    </div>
+
+    <div class="section">
+        <div class="title">菜单数据</div>
+        <button class="btn" onclick="checkMenus()">检查菜单</button>
+        <pre id="menus-output"></pre>
+    </div>
+
+    <div class="section">
+        <div class="title">快速链接</div>
+        <button class="btn" onclick="location.href='/'">返回首页</button>
+        <button class="btn" onclick="location.href='/products'">商品管理</button>
+        <button class="btn" onclick="location.href='/purchases'">进货管理</button>
+        <button class="btn" onclick="location.href='/sales'">销售管理</button>
+        <button class="btn" onclick="location.href='/inventory'">库存查询</button>
+        <button class="btn" onclick="location.href='/reports'">统计报表</button>
+        <button class="btn" onclick="location.href='/settlement'">日清月结</button>
+    </div>
+
+    <script>
+        async function checkConfig() {
+            try {
+                const response = await fetch('/vite-env.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('config-output').textContent = JSON.stringify(data, null, 2);
+                } else {
+                    document.getElementById('config-output').textContent = '无法获取配置信息';
+                }
+            } catch (e) {
+                document.getElementById('config-output').textContent = '错误: ' + e.message;
+            }
+        }
+
+        function checkRoutes() {
+            const output = `
+当前页面路径: ${location.pathname}
+当前页面URL: ${location.href}
+
+可访问的路由:
+- / (首页/仪表板)
+- /products (商品管理)
+- /purchases (进货管理)  
+- /sales (销售管理)
+- /inventory (库存查询)
+- /reports (统计报表)
+- /settlement (日清月结)
+- /demo (框架演示)
+- /login (登录页面)
+
+检查建议:
+1. 确认 routeBaseOn 设置为 'frontend'
+2. 确认菜单数据来源于 asyncRoutes
+3. 确认路由和菜单的元信息配置正确
+            `;
+            document.getElementById('routes-output').textContent = output.trim();
+        }
+
+        function checkMenus() {
+            const output = `
+菜单生成分析:
+
+当前配置应该生成以下菜单结构:
+
+主菜单:
+- 进销存管理 (主分组)
+  ├── 进销存仪表板 (首页)
+  ├── 商品管理
+  ├── 进货管理
+  ├── 销售管理
+  ├── 库存查询
+  ├── 统计报表
+  └── 日清月结
+
+- 演示 (演示分组)
+  └── 多级导航
+
+问题排查:
+1. 如果菜单没有显示，检查 settings.ts 中的配置
+2. 检查路由的 meta.menu 是否被设置为 false
+3. 检查用户权限 auth() 函数是否允许访问
+4. 检查菜单组件是否正确渲染
+
+调试步骤:
+1. 打开开发者工具
+2. 在控制台输入: window.useMenuStore?.()?.allMenus
+3. 查看菜单数据是否正确生成
+            `;
+            document.getElementById('menus-output').textContent = output.trim();
+        }
+
+        // 页面加载时自动检查
+        window.onload = function() {
+            checkRoutes();
+            checkMenus();
+        };
+    </script>
+</body>
+</html>

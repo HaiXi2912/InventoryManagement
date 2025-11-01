@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>进销存系统测试</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .header { 
+            text-align: center; 
+            color: #333; 
+            margin-bottom: 30px; 
+            border-bottom: 2px solid #007bff; 
+            padding-bottom: 15px; 
+        }
+        .section { 
+            margin-bottom: 30px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            overflow: hidden; 
+        }
+        .section-title { 
+            background: #007bff; 
+            color: white; 
+            padding: 12px 15px; 
+            margin: 0; 
+            font-size: 16px; 
+            font-weight: 600; 
+        }
+        .section-content { 
+            padding: 15px; 
+        }
+        .btn { 
+            display: inline-block; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            background: #007bff; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 14px; 
+            transition: background 0.3s; 
+        }
+        .btn:hover { 
+            background: #0056b3; 
+        }
+        .btn-success { 
+            background: #28a745; 
+        }
+        .btn-success:hover { 
+            background: #1e7e34; 
+        }
+        .btn-warning { 
+            background: #ffc107; 
+            color: #212529; 
+        }
+        .btn-warning:hover { 
+            background: #e0a800; 
+        }
+        .route-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 10px; 
+            margin-top: 15px; 
+        }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 4px; 
+            font-family: 'Courier New', monospace; 
+        }
+        .status.info { 
+            background: #d1ecf1; 
+            border: 1px solid #bee5eb; 
+            color: #0c5460; 
+        }
+        .status.warning { 
+            background: #fff3cd; 
+            border: 1px solid #ffeaa7; 
+            color: #856404; 
+        }
+        .code { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 4px; 
+            border-left: 4px solid #007bff; 
+            font-family: 'Courier New', monospace; 
+            white-space: pre-wrap; 
+            overflow-x: auto; 
+            margin: 10px 0; 
+        }
+        .login-form { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 6px; 
+            margin: 15px 0; 
+        }
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: 600; 
+        }
+        .form-group input { 
+            width: 100%; 
+            padding: 8px 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            font-size: 14px; 
+        }
+        .progress { 
+            width: 100%; 
+            height: 6px; 
+            background: #e9ecef; 
+            border-radius: 3px; 
+            overflow: hidden; 
+            margin: 10px 0; 
+        }
+        .progress-bar { 
+            height: 100%; 
+            background: #007bff; 
+            width: 0%; 
+            transition: width 0.3s; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏪 进销存管理系统</h1>
+            <p>系统测试与验证工具</p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🚀 快速登录测试</h2>
+            <div class="section-content">
+                <div class="status info">
+                    <strong>说明：</strong> 系统使用 Mock API，任何用户名和密码都可以登录
+                </div>
+                
+                <div class="login-form">
+                    <div class="form-group">
+                        <label for="username">用户名：</label>
+                        <input type="text" id="username" value="admin" placeholder="输入用户名（例如：admin）">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密码：</label>
+                        <input type="password" id="password" value="123456" placeholder="输入密码（例如：123456）">
+                    </div>
+                    <button class="btn btn-success" onclick="doLogin()">🔑 立即登录</button>
+                    <button class="btn" onclick="location.href='/login'">📱 跳转登录页</button>
+                </div>
+                
+                <div id="login-progress" style="display: none;">
+                    <div class="progress">
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+                    <div class="status info" id="login-status">正在登录...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🧭 路由导航测试</h2>
+            <div class="section-content">
+                <div class="status warning">
+                    <strong>注意：</strong> 部分路由需要登录后才能访问，未登录时会重定向到登录页
+                </div>
+                
+                <div class="route-grid">
+                    <a href="/" class="btn">🏠 首页</a>
+                    <a href="/dashboard" class="btn">📊 数据看板</a>
+                    <a href="/products/list" class="btn">📦 商品列表</a>
+                    <a href="/purchases/list" class="btn">🛒 进货单据</a>
+                    <a href="/sales/list" class="btn">💰 销售单据</a>
+                    <a href="/inventory/query" class="btn">📋 库存查询</a>
+                    <a href="/reports/dashboard" class="btn">📈 数据报表</a>
+                    <a href="/settlement/daily" class="btn">📅 日清月结</a>
+                    <a href="/multilevel_menu_example" class="btn">🌲 多级导航</a>
+                    <a href="/login" class="btn btn-warning">🔐 登录页面</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🔧 系统诊断</h2>
+            <div class="section-content">
+                <button class="btn" onclick="checkSystemStatus()">🔍 检查系统状态</button>
+                <button class="btn" onclick="checkRouteConfig()">📋 检查路由配置</button>
+                <button class="btn" onclick="checkMenuConfig()">🍔 检查菜单配置</button>
+                <button class="btn" onclick="clearStorage()">🗑️ 清除缓存</button>
+                
+                <div id="diagnostic-result"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📋 配置说明</h2>
+            <div class="section-content">
+                <div class="code">当前配置状态：
+• 路由来源: frontend (前端定义)
+• 菜单来源: frontend (前端定义)  
+• 主布局: /src/layouts/index.vue
+• 业务页面: /src/views/inventory/
+
+预期菜单结构：
+进销存管理/
+├── 进销存仪表板
+├── 商品管理
+├── 进货管理  
+├── 销售管理
+├── 库存查询
+├── 统计报表
+└── 日清月结
+
+演示/
+└── 多级导航</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 登录功能
+        async function doLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                alert('请输入用户名和密码');
+                return;
+            }
+
+            const progressDiv = document.getElementById('login-progress');
+            const progressBar = document.getElementById('progress-bar');
+            const statusDiv = document.getElementById('login-status');
+            
+            progressDiv.style.display = 'block';
+            progressBar.style.width = '0%';
+            statusDiv.textContent = '正在连接服务器...';
+            
+            try {
+                // 模拟进度
+                progressBar.style.width = '30%';
+                statusDiv.textContent = '正在验证用户信息...';
+                
+                const response = await fetch('/mock/user/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        account: username,
+                        password: password
+                    })
+                });
+                
+                progressBar.style.width = '70%';
+                statusDiv.textContent = '正在处理响应...';
+                
+                const result = await response.json();
+                
+                progressBar.style.width = '100%';
+                
+                if (result.status === 1) {
+                    statusDiv.textContent = '登录成功！正在跳转...';
+                    statusDiv.className = 'status info';
+                    
+                    // 保存登录信息
+                    localStorage.setItem('account', result.data.account);
+                    localStorage.setItem('token', result.data.token);
+                    localStorage.setItem('avatar', result.data.avatar);
+                    
+                    setTimeout(() => {
+                        location.href = '/';
+                    }, 1000);
+                } else {
+                    statusDiv.textContent = '登录失败：' + (result.error || '未知错误');
+                    statusDiv.className = 'status warning';
+                }
+            } catch (error) {
+                progressBar.style.width = '100%';
+                statusDiv.textContent = '登录出错：' + error.message;
+                statusDiv.className = 'status warning';
+            }
+        }
+
+        // 检查系统状态
+        function checkSystemStatus() {
+            const resultDiv = document.getElementById('diagnostic-result');
+            
+            const hasToken = !!localStorage.getItem('token');
+            const currentPath = location.pathname;
+            const isProduction = location.hostname !== 'localhost';
+            
+            let html = '<div class="code">系统状态检查结果：\n\n';
+            html += `登录状态: ${hasToken ? '✅ 已登录' : '❌ 未登录'}\n`;
+            html += `当前路径: ${currentPath}\n`;
+            html += `运行环境: ${isProduction ? '生产环境' : '开发环境'}\n`;
+            html += `本地存储: ${localStorage.length} 项\n`;
+            html += `用户代理: ${navigator.userAgent.substring(0, 50)}...\n`;
+            
+            if (hasToken) {
+                html += `\n用户信息:\n`;
+                html += `• 账户: ${localStorage.getItem('account') || 'N/A'}\n`;
+                html += `• Token: ${localStorage.getItem('token')?.substring(0, 20) || 'N/A'}...\n`;
+                html += `• 头像: ${localStorage.getItem('avatar') || 'N/A'}\n`;
+            }
+            
+            html += '</div>';
+            resultDiv.innerHTML = html;
+        }
+
+        // 检查路由配置
+        function checkRouteConfig() {
+            const resultDiv = document.getElementById('diagnostic-result');
+            
+            let html = '<div class="code">路由配置检查：\n\n';
+            html += '预期可访问路由：\n';
+            html += '• / (主页，重定向到 /dashboard)\n';
+            html += '• /dashboard (数据看板)\n';
+            html += '• /products/list (商品列表)\n';
+            html += '• /purchases/list (进货单据)\n';
+            html += '• /sales/list (销售单据)\n';
+            html += '• /inventory/query (库存查询)\n';
+            html += '• /reports/dashboard (数据报表)\n';
+            html += '• /settlement/daily (日清月结)\n';
+            html += '• /multilevel_menu_example (多级导航演示)\n';
+            html += '• /login (登录页面)\n\n';
+            
+            html += '路由来源: asyncRoutes (前端定义)\n';
+            html += '配置文件: /src/router/routes.ts\n';
+            html += '布局组件: /src/layouts/index.vue\n';
+            html += '</div>';
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // 检查菜单配置
+        function checkMenuConfig() {
+            const resultDiv = document.getElementById('diagnostic-result');
+            
+            let html = '<div class="code">菜单配置检查：\n\n';
+            html += '菜单生成方式: frontend\n';
+            html += '菜单数据来源: convertRouteToMenu(routeStore.routesRaw)\n';
+            html += '菜单组件: /src/layouts/components/Menu/\n';
+            html += '侧边栏: /src/layouts/components/SubSidebar/\n\n';
+            
+            html += '预期菜单结构：\n';
+            html += '商品管理/\n';
+            html += '└── 商品列表\n\n';
+            html += '进销存管理/\n';
+            html += '├── 进货管理\n';
+            html += '│   └── 进货单据\n';
+            html += '└── 销售管理\n';
+            html += '    └── 销售单据\n\n';
+            html += '库存管理/\n';
+            html += '└── 库存查询\n\n';
+            html += '统计分析/\n';
+            html += '├── 统计报表\n';
+            html += '│   └── 数据报表\n';
+            html += '└── 日清月结\n';
+            html += '    └── 日清月结\n\n';
+            html += '工作台/\n';
+            html += '└── 数据看板\n\n';
+            html += '系统演示/\n';
+            html += '└── 多级导航\n\n';
+            
+            html += '故障排除：\n';
+            html += '1. 检查是否已登录\n';
+            html += '2. 检查路由是否正确生成\n';
+            html += '3. 检查菜单权限配置\n';
+            html += '4. 检查菜单组件渲染\n';
+            html += '</div>';
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // 清除缓存
+        function clearStorage() {
+            if (confirm('确定要清除所有本地存储数据吗？这将注销当前用户。')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                location.reload();
+            }
+        }
+
+        // 页面加载时显示当前状态
+        window.onload = function() {
+            checkSystemStatus();
+        };
+    </script>
+</body>
+</html>

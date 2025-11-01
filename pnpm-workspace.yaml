@@ -1,3 +1,7 @@
 packages:
-  - 'admin-frontend'
-  - 'shop-frontend'
+  - admin-frontend
+  - shop-frontend
+
+ignoredBuiltDependencies:
+  - '@parcel/watcher'
+  - esbuild

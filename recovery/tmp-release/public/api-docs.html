@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服装网店进销存系统 - API文档</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .api-section {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .api-section h2 {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .api-item {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .api-item.post {
+            border-left-color: #007bff;
+        }
+        
+        .api-item.put {
+            border-left-color: #ffc107;
+        }
+        
+        .api-item.delete {
+            border-left-color: #dc3545;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.8em;
+            margin-right: 10px;
+        }
+        
+        .method.get {
+            background: #28a745;
+            color: white;
+        }
+        
+        .method.post {
+            background: #007bff;
+            color: white;
+        }
+        
+        .method.put {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .method.delete {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .endpoint {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        
+        .description {
+            margin: 10px 0;
+            color: #666;
+        }
+        
+        .params {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .params h4 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        
+        .param-item {
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .required {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .optional {
+            color: #6c757d;
+        }
+        
+        .test-section {
+            background: #e7f3ff;
+            border: 1px solid #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+        
+        .test-result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .auth-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .auth-info h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 API 文档</h1>
+            <p>服装网店进销存系统 RESTful API 接口文档</p>
+        </div>
+        
+        <div class="auth-info">
+            <h3>🔐 认证说明</h3>
+            <p>除了登录和注册接口外，所有API都需要JWT认证。在请求头中添加：</p>
+            <code>Authorization: Bearer {your_jwt_token}</code>
+            <p style="margin-top: 10px;">默认管理员账户：<strong>admin / admin123</strong></p>
+        </div>
+        
+        <!-- 认证API -->
+        <div class="api-section">
+            <h2>🔑 用户认证 API</h2>
+            
+            <div class="api-item post">
+                <div>
+                    <span class="method post">POST</span>
+                    <span class="endpoint">/api/auth/login</span>
+                </div>
+                <div class="description">用户登录，获取JWT token</div>
+                <div class="params">
+                    <h4>请求参数：</h4>
+                    <div class="param-item"><span class="required">username*</span> - 用户名</div>
+                    <div class="param-item"><span class="required">password*</span> - 密码</div>
+                </div>
+            </div>
+            
+            <div class="api-item post">
+                <div>
+                    <span class="method post">POST</span>
+                    <span class="endpoint">/api/auth/register</span>
+                </div>
+                <div class="description">用户注册</div>
+                <div class="params">
+                    <h4>请求参数：</h4>
+                    <div class="param-item"><span class="required">username*</span> - 用户名</div>
+                    <div class="param-item"><span class="required">password*</span> - 密码</div>
+                    <div class="param-item"><span class="required">email*</span> - 邮箱</div>
+                    <div class="param-item"><span class="optional">real_name</span> - 真实姓名</div>
+                    <div class="param-item"><span class="optional">phone</span> - 手机号</div>
+                </div>
+            </div>
+            
+            <div class="api-item">
+                <div>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/auth/me</span>
+                </div>
+                <div class="description">获取当前用户信息（需要认证）</div>
+            </div>
+            
+            <div class="api-item post">
+                <div>
+                    <span class="method post">POST</span>
+                    <span class="endpoint">/api/auth/logout</span>
+                </div>
+                <div class="description">退出登录（需要认证）</div>
+            </div>
+        </div>
+        
+        <!-- 商品管理API -->
+        <div class="api-section">
+            <h2>📦 商品管理 API</h2>
+            
+            <div class="api-item">
+                <div>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/products</span>
+                </div>
+                <div class="description">获取商品列表（支持分页、筛选）</div>
+                <div class="params">
+                    <h4>查询参数：</h4>
+                    <div class="param-item"><span class="optional">page</span> - 页码（默认1）</div>
+                    <div class="param-item"><span class="optional">limit</span> - 每页数量（默认10）</div>
+                    <div class="param-item"><span class="optional">category</span> - 商品分类</div>
+                    <div class="param-item"><span class="optional">brand</span> - 品牌</div>
+                    <div class="param-item"><span class="optional">status</span> - 状态（默认active）</div>
+                </div>
+            </div>
+            
+            <div class="api-item">
+                <div>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/products/:id</span>
+                </div>
+                <div class="description">获取单个商品详情</div>
+            </div>
+            
+            <div class="api-item post">
+                <div>
+                    <span class="method post">POST</span>
+                    <span class="endpoint">/api/products</span>
+                </div>
+                <div class="description">创建新商品</div>
+                <div class="params">
+                    <h4>请求参数：</h4>
+                    <div class="param-item"><span class="required">name*</span> - 商品名称</div>
+                    <div class="param-item"><span class="required">code*</span> - 商品编码</div>
+                    <div class="param-item"><span class="optional">category</span> - 分类</div>
+                    <div class="param-item"><span class="optional">brand</span> - 品牌</div>
+                    <div class="param-item"><span class="optional">purchase_price</span> - 进货价</div>
+                    <div class="param-item"><span class="optional">retail_price</span> - 零售价</div>
+                    <div class="param-item">等其他商品属性...</div>
+                </div>
+            </div>
+            
+            <div class="api-item put">
+                <div>
+                    <span class="method put">PUT</span>
+                    <span class="endpoint">/api/products/:id</span>
+                </div>
+                <div class="description">更新商品信息</div>
+            </div>
+            
+            <div class="api-item delete">
+                <div>
+                    <span class="method delete">DELETE</span>
+                    <span class="endpoint">/api/products/:id</span>
+                </div>
+                <div class="description">删除商品（软删除）</div>
+            </div>
+            
+            <div class="api-item">
+                <div>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/products/categories/list</span>
+                </div>
+                <div class="description">获取商品分类列表</div>
+            </div>
+            
+            <div class="api-item">
+                <div>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/products/brands/list</span>
+                </div>
+                <div class="description">获取品牌列表</div>
+            </div>
+        </div>
+        
+        <!-- 库存管理API -->
+        <div class="api-section">
+            <h2>📊 库存管理 API</h2>
+            
+            <div class="api-item">
+                <div>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/inventory</span>
+                </div>
+                <div class="description">获取库存列表</div>
+                <div class="params">
+                    <h4>查询参数：</h4>
+                    <div class="param-item"><span class="optional">page</span> - 页码</div>
+                    <div class="param-item"><span class="optional">limit</span> - 每页数量</div>
+                    <div class="param-item"><span class="optional">warehouse_location</span> - 仓库位置</div>
+                    <div class="param-item"><span class="optional">low_stock</span> - 是否只显示低库存（true/false）</div>
+                </div>
+            </div>
+            
+            <div class="api-item">
+                <div>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/inventory/product/:productId</span>
+                </div>
+                <div class="description">获取指定商品的库存详情</div>
+            </div>
+            
+            <div class="api-item post">
+                <div>
+                    <span class="method post">POST</span>
+                    <span class="endpoint">/api/inventory/adjust</span>
+                </div>
+                <div class="description">库存调整（入库/出库）</div>
+                <div class="params">
+                    <h4>请求参数：</h4>
+                    <div class="param-item"><span class="required">product_id*</span> - 商品ID</div>
+                    <div class="param-item"><span class="required">adjustment_type*</span> - 调整类型（in/out）</div>
+                    <div class="param-item"><span class="required">quantity*</span> - 数量</div>
+                    <div class="param-item"><span class="optional">reason</span> - 调整原因</div>
+                    <div class="param-item"><span class="optional">warehouse_location</span> - 仓库位置</div>
+                </div>
+            </div>
+            
+            <div class="api-item post">
+                <div>
+                    <span class="method post">POST</span>
+                    <span class="endpoint">/api/inventory/stocktake</span>
+                </div>
+                <div class="description">库存盘点</div>
+                <div class="params">
+                    <h4>请求参数：</h4>
+                    <div class="param-item"><span class="required">product_id*</span> - 商品ID</div>
+                    <div class="param-item"><span class="required">actual_stock*</span> - 实际库存数量</div>
+                    <div class="param-item"><span class="optional">warehouse_location</span> - 仓库位置</div>
+                    <div class="param-item"><span class="optional">remark</span> - 备注</div>
+                </div>
+            </div>
+            
+            <div class="api-item">
+                <div>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/inventory/statistics</span>
+                </div>
+                <div class="description">获取库存统计信息</div>
+            </div>
+            
+            <div class="api-item">
+                <div>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/inventory/warehouses</span>
+                </div>
+                <div class="description">获取仓库列表</div>
+            </div>
+        </div>
+        
+        <!-- API测试工具 -->
+        <div class="test-section">
+            <h3>🧪 API 测试工具</h3>
+            <p>点击下面的按钮测试API接口：</p>
+            <button class="test-button" onclick="testLogin()">测试登录</button>
+            <button class="test-button" onclick="testProducts()">测试商品列表</button>
+            <button class="test-button" onclick="testInventory()">测试库存列表</button>
+            <button class="test-button" onclick="testStatistics()">测试库存统计</button>
+            
+            <div id="testResult" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        
+        async function testLogin() {
+            showResult('正在测试登录API...');
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentToken = data.data.token;
+                    showResult('✅ 登录成功！\n' + JSON.stringify(data, null, 2));
+                } else {
+                    showResult('❌ 登录失败：' + data.message);
+                }
+            } catch (error) {
+                showResult('❌ 请求失败：' + error.message);
+            }
+        }
+        
+        async function testProducts() {
+            if (!currentToken) {
+                showResult('⚠️ 请先测试登录获取token');
+                return;
+            }
+            
+            showResult('正在测试商品列表API...');
+            try {
+                const response = await fetch('/api/products?limit=5', {
+                    headers: {
+                        'Authorization': 'Bearer ' + currentToken
+                    }
+                });
+                
+                const data = await response.json();
+                showResult('✅ 商品列表获取成功！\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ 请求失败：' + error.message);
+            }
+        }
+        
+        async function testInventory() {
+            if (!currentToken) {
+                showResult('⚠️ 请先测试登录获取token');
+                return;
+            }
+            
+            showResult('正在测试库存列表API...');
+            try {
+                const response = await fetch('/api/inventory?limit=5', {
+                    headers: {
+                        'Authorization': 'Bearer ' + currentToken
+                    }
+                });
+                
+                const data = await response.json();
+                showResult('✅ 库存列表获取成功！\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ 请求失败：' + error.message);
+            }
+        }
+        
+        async function testStatistics() {
+            if (!currentToken) {
+                showResult('⚠️ 请先测试登录获取token');
+                return;
+            }
+            
+            showResult('正在测试库存统计API...');
+            try {
+                const response = await fetch('/api/inventory/statistics', {
+                    headers: {
+                        'Authorization': 'Bearer ' + currentToken
+                    }
+                });
+                
+                const data = await response.json();
+                showResult('✅ 库存统计获取成功！\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ 请求失败：' + error.message);
+            }
+        }
+        
+        function showResult(text) {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = text;
+        }
+    </script>
+</body>
+</html>
