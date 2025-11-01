@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API连接测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-button { background: #007bff; color: white; border: none; padding: 10px 20px; margin: 10px; border-radius: 4px; cursor: pointer; }
+        .test-button:hover { background: #0056b3; }
+        .result { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin: 10px 0; border-radius: 4px; white-space: pre-wrap; font-family: monospace; }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #666; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 API连接测试工具</h1>
+        
+        <h2>服务器状态测试</h2>
+        <button class="test-button" onclick="testServerHealth()">测试服务器健康状态</button>
+        <button class="test-button" onclick="testApiDocs()">访问API文档</button>
+        
+        <h2>认证测试</h2>
+        <button class="test-button" onclick="testLogin()">测试登录</button>
+        <button class="test-button" onclick="testUserInfo()">测试获取用户信息</button>
+        
+        <h2>商品管理测试</h2>
+        <button class="test-button" onclick="testProducts()">测试商品列表</button>
+        <button class="test-button" onclick="testCreateProduct()">测试创建商品</button>
+        
+        <h2>库存管理测试</h2>
+        <button class="test-button" onclick="testInventory()">测试库存列表</button>
+        <button class="test-button" onclick="testInventoryStats()">测试库存统计</button>
+        
+        <div id="result" class="result" style="display: none;"></div>
+        
+        <h2>当前状态</h2>
+        <div id="status" class="result">
+            前端地址: http://localhost:5173<br>
+            后端地址: http://localhost:3000<br>
+            API代理: /api -> http://localhost:3000<br>
+            状态: 准备测试...
+        </div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result ' + (isError ? 'error' : 'success');
+        }
+        
+        async function testServerHealth() {
+            try {
+                showResult('正在测试服务器健康状态...');
+                const response = await fetch('http://localhost:3000/health');
+                const data = await response.json();
+                showResult('服务器健康状态测试成功！\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('服务器健康状态测试失败：' + error.message, true);
+            }
+        }
+        
+        async function testApiDocs() {
+            window.open('http://localhost:3000/api', '_blank');
+        }
+        
+        async function testLogin() {
+            try {
+                showResult('正在测试登录...');
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentToken = data.data.token;
+                    showResult('登录测试成功！\n' + JSON.stringify(data, null, 2));
+                } else {
+                    showResult('登录测试失败：' + data.message, true);
+                }
+            } catch (error) {
+                showResult('登录测试失败：' + error.message, true);
+            }
+        }
+        
+        async function testUserInfo() {
+            if (!currentToken) {
+                showResult('请先测试登录获取token', true);
+                return;
+            }
+            
+            try {
+                showResult('正在测试获取用户信息...');
+                const response = await fetch('http://localhost:3000/api/auth/me', {
+                    headers: {
+                        'Authorization': 'Bearer ' + currentToken
+                    }
+                });
+                
+                const data = await response.json();
+                showResult('获取用户信息测试成功！\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('获取用户信息测试失败：' + error.message, true);
+            }
+        }
+        
+        async function testProducts() {
+            if (!currentToken) {
+                showResult('请先测试登录获取token', true);
+                return;
+            }
+            
+            try {
+                showResult('正在测试商品列表...');
+                const response = await fetch('http://localhost:3000/api/products?limit=5', {
+                    headers: {
+                        'Authorization': 'Bearer ' + currentToken
+                    }
+                });
+                
+                const data = await response.json();
+                showResult('商品列表测试成功！\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('商品列表测试失败：' + error.message, true);
+            }
+        }
+        
+        async function testCreateProduct() {
+            if (!currentToken) {
+                showResult('请先测试登录获取token', true);
+                return;
+            }
+            
+            try {
+                showResult('正在测试创建商品...');
+                const response = await fetch('http://localhost:3000/api/products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + currentToken
+                    },
+                    body: JSON.stringify({
+                        name: '测试商品',
+                        code: 'TEST-' + Date.now(),
+                        category: '测试分类',
+                        purchase_price: 100,
+                        retail_price: 150,
+                        description: '这是一个测试商品'
+                    })
+                });
+                
+                const data = await response.json();
+                showResult('创建商品测试成功！\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('创建商品测试失败：' + error.message, true);
+            }
+        }
+        
+        async function testInventory() {
+            if (!currentToken) {
+                showResult('请先测试登录获取token', true);
+                return;
+            }
+            
+            try {
+                showResult('正在测试库存列表...');
+                const response = await fetch('http://localhost:3000/api/inventory?limit=5', {
+                    headers: {
+                        'Authorization': 'Bearer ' + currentToken
+                    }
+                });
+                
+                const data = await response.json();
+                showResult('库存列表测试成功！\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('库存列表测试失败：' + error.message, true);
+            }
+        }
+        
+        async function testInventoryStats() {
+            if (!currentToken) {
+                showResult('请先测试登录获取token', true);
+                return;
+            }
+            
+            try {
+                showResult('正在测试库存统计...');
+                const response = await fetch('http://localhost:3000/api/statistics/inventory', {
+                    headers: {
+                        'Authorization': 'Bearer ' + currentToken
+                    }
+                });
+                
+                const data = await response.json();
+                showResult('库存统计测试成功！\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('库存统计测试失败：' + error.message, true);
+            }
+        }
+    </script>
+</body>
+</html>

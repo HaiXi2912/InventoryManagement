@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+        }
+        .btn:hover { background: #0056b3; }
+        .storage-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔐 登录功能测试页面</h1>
+        
+        <div class="status info">
+            <strong>当前页面地址:</strong> <span id="currentUrl"></span>
+        </div>
+        
+        <div id="loginStatus" class="status"></div>
+        
+        <div class="storage-info">
+            <h3>本地存储信息:</h3>
+            <div id="storageInfo"></div>
+        </div>
+        
+        <div>
+            <button class="btn" onclick="checkLoginStatus()">检查登录状态</button>
+            <button class="btn" onclick="goToLogin()">前往登录页</button>
+            <button class="btn" onclick="goToHome()">前往首页</button>
+            <button class="btn" onclick="testDirectLogin()">直接模拟登录</button>
+            <button class="btn" onclick="clearStorage()">清除登录状态</button>
+        </div>
+        
+        <h2>测试步骤:</h2>
+        <ol>
+            <li>点击"前往登录页"按钮</li>
+            <li>在登录页面输入用户名和密码 (默认: admin/123456)</li>
+            <li>点击登录按钮</li>
+            <li>观察是否正确跳转到首页</li>
+            <li>回到此页面检查登录状态</li>
+        </ol>
+        
+        <h2>问题排查:</h2>
+        <ul>
+            <li>如果登录后没有跳转，检查控制台错误信息</li>
+            <li>如果跳转到错误页面，检查路由配置</li>
+            <li>如果登录状态丢失，检查本地存储</li>
+        </ul>
+    </div>
+
+    <script>
+        function updateCurrentUrl() {
+            document.getElementById('currentUrl').textContent = window.location.href;
+        }
+        
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            const account = localStorage.getItem('account');
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const statusDiv = document.getElementById('loginStatus');
+            
+            if (token && account) {
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `<strong>✅ 已登录</strong><br>用户: ${account}<br>Token: ${token.substring(0, 20)}...`;
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '<strong>❌ 未登录</strong>';
+            }
+            
+            updateStorageInfo();
+        }
+        
+        function updateStorageInfo() {
+            const info = {
+                token: localStorage.getItem('token'),
+                account: localStorage.getItem('account'),
+                avatar: localStorage.getItem('avatar'),
+                isLoggedIn: localStorage.getItem('isLoggedIn'),
+                userInfo: localStorage.getItem('userInfo'),
+                remember_user: localStorage.getItem('remember_user')
+            };
+            
+            let html = '';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<div><strong>${key}:</strong> ${value || 'null'}</div>`;
+            }
+            document.getElementById('storageInfo').innerHTML = html;
+        }
+        
+        function testDirectLogin() {
+            // 模拟登录状态
+            const mockData = {
+                account: 'admin',
+                token: 'mock-jwt-token-' + Date.now(),
+                avatar: '/images/avatar.jpg'
+            };
+            
+            localStorage.setItem('account', mockData.account);
+            localStorage.setItem('token', mockData.token);
+            localStorage.setItem('avatar', mockData.avatar);
+            
+            alert('已模拟登录，即将跳转到首页');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        }
+        
+        function goToLogin() {
+            window.location.href = '/login';
+        }
+        
+        function goToHome() {
+            window.location.href = '/';
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            checkLoginStatus();
+            alert('已清除所有本地存储');
+        }
+        
+        // 页面加载时执行
+        updateCurrentUrl();
+        checkLoginStatus();
+        
+        // 每秒更新一次状态
+        setInterval(checkLoginStatus, 1000);
+    </script>
+</body>
+</html>
