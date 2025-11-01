@@ -33,10 +33,20 @@ jobs:
           fi
 
       - name: Lint
-        run: npm run lint --if-present || true
+        run: |
+          if [ -f package.json ]; then
+            npm run lint --if-present || true
+          else
+            echo "skip lint"
+          fi
 
       - name: Test
-        run: npm test --if-present || true
+        run: |
+          if [ -f package.json ]; then
+            npm test --if-present || true
+          else
+            echo "skip test"
+          fi
 
       - name: Package server (no deps)
         run: |
@@ -47,20 +57,9 @@ jobs:
             fi
           done
           if [ -f package.json ]; then
-            node - <<'NODE'
-            const fs=require('fs');
-            const p=require('./package.json');
-            const out={...p, scripts:{start:(p.scripts&&p.scripts.start)||'node server.js'}};
-            fs.writeFileSync('build/package.json', JSON.stringify(out,null,2));
-            NODE
+            node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.scripts={start:(p.scripts&&p.scripts.start)||'node server.js'};fs.writeFileSync('build/package.json', JSON.stringify(p,null,2));"
           else
-            cat > build/package.json << 'EOF'
-            {
-              "name": "api",
-              "version": "1.0.0",
-              "scripts": { "start": "node server.js" }
-            }
-            EOF
+            node -e "const fs=require('fs');fs.writeFileSync('build/package.json', JSON.stringify({name:'api',version:'1.0.0',scripts:{start:'node server.js'}},null,2));"
           fi
 
       - name: Upload API artifact
