@@ -1,0 +1,26 @@
+# Exclude VCS and local env
+.git
+.gitignore
+.venv
+.vscode
+
+# Node and logs
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Frontend sources not required for API runtime image
+admin-frontend/
+shop-frontend/
+
+# Test and CI artifacts
+coverage/
+reports/
+*.coverage
+*.lcov
+
+# Docker and compose overrides
+Dockerfile.*
+**/*.swp
