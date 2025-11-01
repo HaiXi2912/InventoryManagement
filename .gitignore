@@ -33,22 +33,5 @@ public/uploads/
 admin-frontend/public/uploads/
 shop-frontend/public/uploads/
 
-# Vite/Cache
-**/.vite/
-**/.cache/
-
-# Built static sites (serve via CI/CD artifacts or Docker image)
-public/admin/
-public/shop/
-
-# Frontend build outputs
-admin-frontend/.output/
-admin-frontend/.vercel/
-shop-frontend/.output/
-
-# OS misc
-*.swp
-*.tmp
-
 # Misc
 *.local
