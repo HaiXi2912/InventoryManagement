@@ -1,0 +1,5 @@
+* text=auto eol=lf
+
+# Keep large assets via LFS when needed (disabled by default)
+# To enable later, uncomment specific patterns, e.g.:
+# public/uploads/** filter=lfs diff=lfs merge=lfs -text
