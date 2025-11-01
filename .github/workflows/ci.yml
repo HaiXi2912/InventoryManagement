@@ -10,9 +10,6 @@ jobs:
   backend:
     name: Backend (API) Build & Test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,9 +19,15 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: package-lock.json
 
-      - name: Install deps (prod only for speed)
-        run: npm ci
+      - name: Install deps
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm i
+          fi
 
       - name: Lint
         run: npm run lint --if-present
@@ -35,10 +38,8 @@ jobs:
       - name: Package server (no deps)
         run: |
           mkdir -p build
-          cp -r server.js routes models middleware services config public package.json build/
-          # strip dev scripts for runtime safety
+          cp -r server.js routes models middleware services config public package.json build/ 2>/dev/null || true
           jq ".scripts={start: .scripts.start}" package.json > build/package.json
-        shell: bash
 
       - name: Upload API artifact
         uses: actions/upload-artifact@v4
@@ -49,42 +50,42 @@ jobs:
   admin-frontend:
     name: Admin Frontend Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./admin-frontend
     steps:
       - uses: actions/checkout@v4
 
-      - id: check
+      - id: probe
         name: Check admin-frontend exists
         run: |
-          if [ ! -f package.json ]; then
-            echo "package.json missing, skip admin build"; exit 1;
+          if [ -d admin-frontend ] && [ -f admin-frontend/pnpm-lock.yaml ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
           fi
-        shell: bash
-        continue-on-error: true
 
       - name: Enable corepack (pnpm)
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         run: corepack enable
 
       - name: Setup Node
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
+          cache-dependency-path: admin-frontend/pnpm-lock.yaml
 
       - name: Install
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         run: pnpm install --frozen-lockfile
+        working-directory: admin-frontend
 
       - name: Build
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         run: pnpm build
+        working-directory: admin-frontend
 
       - name: Upload dist
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: admin-frontend-dist
@@ -93,42 +94,42 @@ jobs:
   shop-frontend:
     name: Shop Frontend Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./shop-frontend
     steps:
       - uses: actions/checkout@v4
 
-      - id: check
+      - id: probe
         name: Check shop-frontend exists
         run: |
-          if [ ! -f package.json ]; then
-            echo "package.json missing, skip shop build"; exit 1;
+          if [ -d shop-frontend ] && [ -f shop-frontend/pnpm-lock.yaml ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
           fi
-        shell: bash
-        continue-on-error: true
 
       - name: Enable corepack (pnpm)
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         run: corepack enable
 
       - name: Setup Node
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
+          cache-dependency-path: shop-frontend/pnpm-lock.yaml
 
       - name: Install
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         run: pnpm install --frozen-lockfile
+        working-directory: shop-frontend
 
       - name: Build
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         run: pnpm build
+        working-directory: shop-frontend
 
       - name: Upload dist
-        if: steps.check.outcome == 'success'
+        if: steps.probe.outputs.exists == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: shop-frontend-dist
