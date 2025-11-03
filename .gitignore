@@ -35,3 +35,15 @@ shop-frontend/public/uploads/
 
 # Misc
 *.local
+*.log
+dist-*/
+release-smoke/
+backup/
+*.zip
+*.tar.gz
+*.env
+**/.venv/
+.venv/
+*.br
+*.gz
+dist/

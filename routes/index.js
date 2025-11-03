@@ -7,17 +7,44 @@ const productsRoutes = require('./products');
 const inventoryRoutes = require('./inventory');
 const purchasesRoutes = require('./purchases');
 const salesRoutes = require('./sales');
-// const reportsRoutes = require('./reports'); // 该文件当前不存在，改为可选加载
 const productContentRoutes = require('./productContent');
 const productMediaRoutes = require('./productMedia');
 const productSkusRoutes = require('./productSkus');
 const factoryRoutes = require('./factory');
+const customersRoutes = require('./customers');
+const ordersRoutes = require('./orders');
+const addressesRoutes = require('./addresses');
+// 新增：聊天接口
+const chatsRoutes = require('./chats');
 // 新增：商城目录公开接口（无鉴权，用于前台）
 let catalogRoutes = null;
 try {
   catalogRoutes = require('./catalog');
 } catch (e) {
   catalogRoutes = null;
+}
+// 新增：退货路由
+const returnsRoutes = require('./returns');
+// 新增：统计路由
+let statisticsRoutes = null;
+try {
+  statisticsRoutes = require('./statistics');
+} catch (e) {
+  statisticsRoutes = null;
+}
+// 新增：财务路由
+let financeRoutes = null;
+try {
+  financeRoutes = require('./finance');
+} catch (e) {
+  financeRoutes = null;
+}
+// 新增：库存（SKU维度）路由
+let stockRoutes = null;
+try {
+  stockRoutes = require('./stock');
+} catch (e) {
+  stockRoutes = null;
 }
 
 const router = express.Router();
@@ -89,11 +116,25 @@ router.use('/products', productMediaRoutes);
 router.use('/products', productSkusRoutes);
 // 新增：前台目录（公开）
 if (catalogRoutes) router.use('/catalog', catalogRoutes);
+// 新增：聊天接口
+router.use('/chats', chatsRoutes);
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/customers', customersRoutes);
+router.use('/addresses', addressesRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/purchases', purchasesRoutes); // 历史只读/受限接口
 router.use('/sales', salesRoutes);
+// 新增：订单模块（含前台下单与后台管理）
+router.use('/', ordersRoutes);
+// 新增：统计
+if (statisticsRoutes) router.use('/statistics', statisticsRoutes);
+// 新增：财务
+if (financeRoutes) router.use('/finance', financeRoutes);
+// 新增：SKU库存
+if (stockRoutes) router.use('/stock', stockRoutes);
+// 新增：退货
+router.use('/returns', returnsRoutes);
 // 可选挂载 reports（如果存在）
 try {
   const reportsRoutes = require('./reports');

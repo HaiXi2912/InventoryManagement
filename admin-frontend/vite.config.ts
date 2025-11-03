@@ -17,15 +17,17 @@ export default defineConfig(({ mode, command }) => {
     }
   })
   return {
+    base: '/admin/',
     // 开发服务器选项 https://cn.vitejs.dev/config/server-options
     server: {
       open: true,
       host: true,
       port: 9000,
+      strictPort: true,
       proxy: {
         '/api': {
-          // 修正：与后端端口一致（server.js 默认 3004，且支持自动顺延；开发期固定为 3004）
-          target: 'http://localhost:3004',
+          // 切回独立后端端口 3000，确保与 newserver.js 保持一致
+          target: 'http://127.0.0.1:3000',
           changeOrigin: true,
           secure: false,
         },

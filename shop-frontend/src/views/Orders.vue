@@ -1,6 +1,9 @@
 <template>
   <div class="orders" v-loading="loading">
     <h2>我的订单</h2>
+    <div class="toolbar">
+      <el-button type="primary" @click="$router.push('/wallet')">我的钱包</el-button>
+    </div>
     <el-table :data="list" border>
       <el-table-column prop="order_no" label="订单号" width="180" />
       <el-table-column prop="status" label="状态" width="120" />
@@ -69,4 +72,5 @@ onMounted(load)
 
 <style scoped>
 .orders{ max-width: 1000px; margin: 20px auto; }
+.toolbar{ display:flex; justify-content:flex-end; margin-bottom:12px }
 </style>

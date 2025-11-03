@@ -21,10 +21,23 @@ router.get('/catalog', optionalAuth, async (req,res)=>{
 // 商品详情
 router.get('/catalog/:id', optionalAuth, async (req,res)=>{
   try {
-    const p = await Product.findByPk(req.params.id, { include: [{ model: ProductSku, as:'skus' }, { model: ProductMedia, as:'media' }, { model: ProductContent, as:'content' }] });
+    const id = Number(req.params.id)
+    if(!Number.isFinite(id)) return res.status(400).json({ success:false, message:'参数错误' })
+    const p = await Product.findByPk(id, { include: [{ model: ProductSku, as:'skus' }, { model: ProductMedia, as:'media' }, { model: ProductContent, as:'content' }] });
     if(!p || p.status!=='active') return res.status(404).json({ success:false, message:'商品不存在' });
     res.json({ success:true, data: p });
-  } catch(e){ res.status(500).json({ success:false, message:'服务器错误' }); }
+  } catch(e){
+    try {
+      console.error('[catalog/:id] 查询失败，降级为基础信息', e && e.message)
+      const id = Number(req.params.id)
+      const p = await Product.findByPk(id, { include: [{ model: ProductSku, as:'skus' }, { model: ProductMedia, as:'media' }] });
+      if(!p || p.status!=='active') return res.status(404).json({ success:false, message:'商品不存在' });
+      return res.json({ success:true, data: p, degraded: true })
+    } catch (e2) {
+      console.error('[catalog/:id] 降级查询仍失败', e2)
+      return res.status(500).json({ success:false, message:'服务器错误' })
+    }
+  }
 });
 
 // 根据 SKU 获取详情（前台使用）
@@ -137,13 +150,23 @@ router.post('/orders/:id/cancel', authenticate, async (req,res)=>{
 
 // 我的订单列表与详情
 router.get('/orders', authenticate, async (req,res)=>{
-  const list = await Order.findAll({ where:{ user_id: req.user.id }, order:[['id','DESC']], include:[{ model: OrderItem, as:'items' }] });
-  res.json({ success:true, data: list });
+  try {
+    const list = await Order.findAll({ where:{ user_id: req.user.id }, order:[['id','DESC']], include:[{ model: OrderItem, as:'items' }] });
+    res.json({ success:true, data: list });
+  } catch (e) {
+    console.error('my orders list error', e);
+    res.status(500).json({ success:false, message:'服务器错误' });
+  }
 });
 router.get('/orders/:id', authenticate, async (req,res)=>{
-  const o = await Order.findOne({ where:{ id: req.params.id, user_id: req.user.id }, include:[{ model: OrderItem, as:'items' }, { model: Address, as:'address' }] });
-  if(!o) return res.status(404).json({ success:false, message:'订单不存在' });
-  res.json({ success:true, data: o });
+  try {
+    const o = await Order.findOne({ where:{ id: req.params.id, user_id: req.user.id }, include:[{ model: OrderItem, as:'items' }, { model: Address, as:'address' }] });
+    if(!o) return res.status(404).json({ success:false, message:'订单不存在' });
+    res.json({ success:true, data: o });
+  } catch (e) {
+    console.error('my order detail error', e);
+    res.status(500).json({ success:false, message:'服务器错误' });
+  }
 });
 
 // 前台：确认收货（用户侧操作）
@@ -159,10 +182,15 @@ router.post('/orders/:id/confirm', authenticate, async (req,res)=>{
 
 // 钱包：查询我的余额与流水（前台）
 router.get('/wallet/me', authenticate, async (req,res)=>{
-  const me = await Customer.findByPk(req.user.id);
-  if(!me) return res.status(404).json({ success:false, message:'客户不存在' });
-  const txs = await WalletTransaction.findAll({ where:{ customer_id: me.id }, order:[['id','DESC']], limit: 50 });
-  res.json({ success:true, data: { balance: Number(me.wallet_balance||0), transactions: txs } });
+  try {
+    const me = await Customer.findByPk(req.user.id);
+    if(!me) return res.status(404).json({ success:false, message:'客户不存在' });
+    const txs = await WalletTransaction.findAll({ where:{ customer_id: me.id }, order:[['id','DESC']], limit: 50 });
+    res.json({ success:true, data: { balance: Number(me.wallet_balance||0), transactions: txs } });
+  } catch (e) {
+    console.error('wallet me error', e);
+    res.status(500).json({ success:false, message:'服务器错误' });
+  }
 });
 
 // 钱包：充值（模拟）
@@ -211,9 +239,14 @@ router.get('/admin/orders', authenticate, authorize(['admin','manager','staff'])
 
 // 管理端：订单详情
 router.get('/admin/orders/:id', authenticate, authorize(['admin','manager','staff']), async (req,res)=>{
-  const o = await Order.findByPk(req.params.id, { include:[{ model: OrderItem, as:'items' }, { model: Address, as:'address' }] })
-  if(!o) return res.status(404).json({ success:false, message:'订单不存在' })
-  res.json({ success:true, data: o })
+  try {
+    const o = await Order.findByPk(req.params.id, { include:[{ model: OrderItem, as:'items' }, { model: Address, as:'address' }] })
+    if(!o) return res.status(404).json({ success:false, message:'订单不存在' })
+    res.json({ success:true, data: o })
+  } catch (e) {
+    console.error('admin order detail error', e)
+    res.status(500).json({ success:false, message:'服务器错误' })
+  }
 })
 
 // 管理端：发货（填写物流信息）

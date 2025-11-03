@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', apiLimiter, async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page || '1', 10), 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit || '10', 10), 1), 100);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '12', 10), 1), 100);
     const offset = (page - 1) * limit;
 
     const { q, category, brand, minPrice, maxPrice } = req.query || {};
@@ -34,41 +34,27 @@ router.get('/', apiLimiter, async (req, res) => {
     const { count, rows } = await Product.findAndCountAll({
       where,
       attributes: [
-        'id','name','code','barcode','category','brand','retail_price','status','createdAt','updatedAt'
+        'id','name','code','barcode','category','brand','retail_price','status','createdAt','updatedAt','image_url'
       ],
       include: [
         {
           model: ProductMedia,
           as: 'media',
           attributes: ['id','url','thumb_url','is_main','sort'],
-          where: { is_main: true },
           required: false,
         },
-        { model: Inventory, as: 'inventory', attributes: ['current_stock', 'available_stock'] }
+        { model: Inventory, as: 'inventory', attributes: ['current_stock', 'available_stock'], required: false }
       ],
       limit,
       offset,
       order: [['createdAt', 'DESC']],
     });
 
-    // 统一首图字段，便于前端使用
-    const items = rows.map(p => {
-      const json = p.toJSON();
-      json.cover = json.media && json.media.length > 0 ? json.media[0].url : json.image_url || null;
-      delete json.media;
-      return json;
-    });
-
     return res.json({
       success: true,
       data: {
-        items,
-        pagination: {
-          current_page: page,
-          per_page: limit,
-          total_count: count,
-          total_pages: Math.ceil(count / limit),
-        },
+        items: rows,
+        pagination: { total: count, page, limit },
       },
     });
   } catch (err) {
@@ -83,19 +69,72 @@ router.get('/:id', apiLimiter, async (req, res) => {
     const id = req.params.id;
     const product = await Product.findByPk(id, {
       include: [
-        { model: ProductMedia, as: 'media', attributes: ['id','url','thumb_url','is_main','sort'], required: false, order: [['is_main','DESC'],['sort','ASC'],['id','ASC']] },
-        { model: ProductSku, as: 'skus', attributes: ['id','sku_code','color','size','stock','retail_price'] },
-        { model: ProductContent, as: 'content', attributes: ['id','description','detail_html'] },
-        { model: Inventory, as: 'inventory' }
+        { model: ProductMedia, as: 'media', attributes: ['id','url','thumb_url','is_main','sort'], required: false },
+        { model: ProductSku, as: 'skus', attributes: ['id','sku_code','color','size','stock','locked_stock','retail_price','wholesale_price','tag_price'] },
+        { model: ProductContent, as: 'content', attributes: ['id','mobile_html','rich_html','seo_title','seo_keywords','seo_desc'], required: false },
+        { model: Inventory, as: 'inventory', required: false }
       ],
     });
-    if (!product || product.status === 'discontinued') {
+    if (!product || product.status !== 'active') {
       return res.status(404).json({ success: false, message: '商品不存在' });
     }
-    return res.json({ success: true, data: { product } });
+    // 对媒体排序
+    try {
+      if (Array.isArray(product.media)) {
+        product.media.sort((a, b) => {
+          const aMain = a.is_main ? 1 : 0;
+          const bMain = b.is_main ? 1 : 0;
+          if (bMain !== aMain) return bMain - aMain;
+          const aSort = Number(a.sort || 0), bSort = Number(b.sort || 0);
+          if (aSort !== bSort) return aSort - bSort;
+          return Number(a.id) - Number(b.id);
+        });
+      }
+    } catch {}
+    return res.json({ success: true, data: product });
   } catch (err) {
-    console.error('[catalog] 详情失败:', err);
-    return res.status(500).json({ success: false, message: '服务器错误' });
+    const msg = (process.env.NODE_ENV !== 'production') ? (err && err.message) : '服务器错误'
+    console.error('[catalog] 详情失败，降级到 media+skus:', err && err.stack || err)
+    try {
+      const id = req.params.id;
+      const product = await Product.findByPk(id, {
+        include: [
+          { model: ProductMedia, as: 'media', attributes: ['id','url','thumb_url','is_main','sort'], required: false },
+          { model: ProductSku, as: 'skus', attributes: ['id','sku_code','color','size','stock','locked_stock','retail_price','wholesale_price','tag_price'] },
+        ],
+      });
+      if (!product || product.status !== 'active') {
+        return res.status(404).json({ success: false, message: '商品不存在' });
+      }
+      try {
+        if (Array.isArray(product.media)) {
+          product.media.sort((a, b) => {
+            const aMain = a.is_main ? 1 : 0;
+            const bMain = b.is_main ? 1 : 0;
+            if (bMain !== aMain) return bMain - aMain;
+            const aSort = Number(a.sort || 0), bSort = Number(b.sort || 0);
+            if (aSort !== bSort) return aSort - bSort;
+            return Number(a.id) - Number(b.id);
+          });
+        }
+      } catch {}
+      return res.json({ success: true, data: product, degraded: true });
+    } catch (e2) {
+      console.error('[catalog] 详情二级降级失败，降到基础信息:', e2 && e2.stack || e2)
+      try {
+        const id = req.params.id;
+        const p = await Product.findByPk(id);
+        if (!p || p.status !== 'active') return res.status(404).json({ success: false, message: '商品不存在' });
+        const minimal = p.toJSON ? p.toJSON() : p;
+        minimal.media = [];
+        minimal.skus = [];
+        minimal.content = null;
+        return res.json({ success: true, data: minimal, degraded: 'minimal' });
+      } catch (e3) {
+        console.error('[catalog] 详情三级降级仍失败:', e3 && e3.stack || e3)
+        return res.status(500).json({ success: false, message: msg, error: e3 && e3.message })
+      }
+    }
   }
 });
 

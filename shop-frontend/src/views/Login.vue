@@ -36,7 +36,7 @@ async function submit(){
       // 兼容本地
       localStorage.setItem('token', data.data.token)
       ElMessage.success('登录成功')
-      const redirect = String(route.query.redirect||'/')
+      const redirect = typeof route.query.redirect === 'string' && route.query.redirect ? route.query.redirect : '/'
       router.replace(redirect)
     }
   } finally { loading.value = false }

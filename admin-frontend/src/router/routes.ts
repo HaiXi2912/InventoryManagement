@@ -28,7 +28,8 @@ const systemRoutes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('@/layouts/index.vue'),
-    redirect: '/dashboard',
+    // 默认进入统计数据报表
+    redirect: '/reports/dashboard',
     meta: {
       title: () => useSettingsStore().settings.home.title,
       breadcrumb: false,
@@ -49,6 +50,64 @@ const systemRoutes: RouteRecordRaw[] = [
 
 // 动态路由（异步路由、导航栏路由）
 const asyncRoutes: Route.recordMainRaw[] = [
+  // 将统计模块放在最前
+  {
+    meta: {
+      title: '统计',
+      icon: 'i-ep:data-analysis',
+    },
+    children: [
+      {
+        path: '/reports',
+        component: () => import('@/layouts/index.vue'),
+        redirect: '/reports/dashboard',
+        meta: {
+          title: '统计报表',
+          icon: 'i-ep:data-line',
+        },
+        children: [
+          {
+            path: 'dashboard',
+            name: 'reportsDashboard',
+            component: () => import('@/views/inventory/reports.vue'),
+            meta: {
+              title: '数据报表',
+              icon: 'i-ep:data-line',
+            },
+          },
+        ],
+      },
+      {
+        path: '/settlement',
+        component: () => import('@/layouts/index.vue'),
+        redirect: '/settlement/daily',
+        meta: {
+          title: '日清月结',
+          icon: 'i-ep:calendar',
+        },
+        children: [
+          {
+            path: 'daily',
+            name: 'settlementDaily',
+            component: () => import('@/views/inventory/settlement.vue'),
+            meta: {
+              title: '日清月结',
+              icon: 'i-ep:calendar',
+            },
+          },
+          {
+            path: 'factory',
+            name: 'factorySettlement',
+            component: () => import('@/views/finance/factory-settlement.vue'),
+            meta: {
+              title: '工厂结算',
+              icon: 'i-ep:coin',
+            },
+          },
+        ],
+      },
+    ],
+  },
   {
     meta: {
       title: '商品',
@@ -164,91 +223,6 @@ const asyncRoutes: Route.recordMainRaw[] = [
   },
   {
     meta: {
-      title: '统计',
-      icon: 'i-ep:data-analysis',
-    },
-    children: [
-      {
-        path: '/reports',
-        component: () => import('@/layouts/index.vue'),
-        redirect: '/reports/dashboard',
-        meta: {
-          title: '统计报表',
-          icon: 'i-ep:data-line',
-        },
-        children: [
-          {
-            path: 'dashboard',
-            name: 'reportsDashboard',
-            component: () => import('@/views/inventory/reports.vue'),
-            meta: {
-              title: '数据报表',
-              icon: 'i-ep:data-line',
-            },
-          },
-        ],
-      },
-      {
-        path: '/settlement',
-        component: () => import('@/layouts/index.vue'),
-        redirect: '/settlement/daily',
-        meta: {
-          title: '日清月结',
-          icon: 'i-ep:calendar',
-        },
-        children: [
-          {
-            path: 'daily',
-            name: 'settlementDaily',
-            component: () => import('@/views/inventory/settlement.vue'),
-            meta: {
-              title: '日清月结',
-              icon: 'i-ep:calendar',
-            },
-          },
-          {
-            path: 'factory',
-            name: 'factorySettlement',
-            component: () => import('@/views/finance/factory-settlement.vue'),
-            meta: {
-              title: '工厂结算',
-              icon: 'i-ep:coin',
-            },
-          },
-        ],
-      },
-    ],
-  },
-  {
-    meta: {
-      title: '工作台',
-      icon: 'i-ep:monitor',
-    },
-    children: [
-      {
-        path: '/',
-        component: () => import('@/layouts/index.vue'),
-        redirect: '/dashboard',
-        meta: {
-          title: '工作台',
-          icon: 'i-ep:monitor',
-        },
-        children: [
-          {
-            path: 'dashboard',
-            name: 'dashboard',
-            component: () => import('@/views/inventory/dashboard.vue'),
-            meta: {
-              title: '数据看板',
-              icon: 'i-ep:data-board',
-            },
-          },
-        ],
-      },
-    ],
-  },
-  {
-    meta: {
       title: '客服',
       icon: 'i-ep:chat-line-square',
     },
@@ -295,7 +269,7 @@ const asyncRoutes: Route.recordMainRaw[] = [
   },
   {
     meta: {
-      title: '平台',
+      title: '账号',
       icon: 'i-ep:user',
     },
     children: [
@@ -303,7 +277,7 @@ const asyncRoutes: Route.recordMainRaw[] = [
         path: '/system',
         component: () => import('@/layouts/index.vue'),
         redirect: '/system/members',
-        meta: { title: '平台', icon: 'i-ep:user' },
+        meta: { title: '账号', icon: 'i-ep:user' },
         children: [
           {
             path: 'members',
@@ -315,7 +289,7 @@ const asyncRoutes: Route.recordMainRaw[] = [
             path: 'customers',
             name: 'systemCustomers',
             component: () => import('@/views/system/customers.vue'),
-            meta: { title: '散户用户', icon: 'i-ep:user' },
+            meta: { title: '用户', icon: 'i-ep:user' },
           },
         ],
       },
@@ -334,7 +308,7 @@ const asyncRoutes: Route.recordMainRaw[] = [
         meta: { title: '订单', icon: 'i-ep:document' },
         children: [
           { path: 'admin', name: 'adminOrders', component: () => import('@/views/orders/admin-orders.vue'), meta: { title: '订单管理', icon: 'i-ep:ship' } },
-          { path: 'detail', name: 'adminOrderDetail', component: () => import('@/views/orders/admin-order-detail.vue'), meta: { title: '订单详情', icon: 'i-ep:document', breadcrumb: true, hidden: true } },
+          // 移除独立详情页：改为列表内弹窗查看详情
         ],
       },
     ],

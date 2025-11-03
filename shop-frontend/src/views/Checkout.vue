@@ -104,37 +104,56 @@ function parseJwtId(): number | null {
   }catch{ return null }
 }
 
+function normalizeImage(url?: string): string {
+  if(!url) return 'https://via.placeholder.com/120x120?text=SKU'
+  const u = String(url)
+  if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('/')) return u
+  // 兼容诸如 "120x120?text=SKU" 之类的相对地址
+  if (/^\d+x\d+(\?.*)?$/.test(u)) return `https://via.placeholder.com/${u}`
+  return 'https://via.placeholder.com/120x120?text=SKU'
+}
+
 async function load(){
   loading.value = true
   try{
-    // 地址
-    const addrRes = await http.get('/api/addresses')
-    if(addrRes.data?.success){
-      addresses.value = addrRes.data.data || []
-      const def = addresses.value.find((a:any)=>a.is_default)
-      addressId.value = def?.id || addresses.value[0]?.id || null
+    // 地址（失败不阻断）
+    try{
+      const addrRes = await http.get('/api/addresses')
+      if(addrRes.data?.success){
+        addresses.value = addrRes.data.data || []
+        const def = addresses.value.find((a:any)=>a.is_default)
+        addressId.value = def?.id || addresses.value[0]?.id || null
+      }
+    }catch(e){
+      // 404/401 时，不影响后续流程
+      addresses.value = []
+      addressId.value = null
     }
-    // 订单明细从购物车来
+
+    // 订单明细从购物车来（每个 SKU 独立兜底异常）
     const list:any[] = []
     for(const it of cart.items){
-      const { data } = await http.get(`/api/catalog/sku/${it.sku_id}`)
-      if(data?.success){
-        const { sku, product } = data.data
-        const image = product?.media?.find?.((m:any)=>m.is_main)?.url || product?.image_url || 'https://via.placeholder.com/120x120?text=SKU'
-        const quantity = it.quantity
-        list.push({
-          sku_id: sku.id,
-          product_id: sku.product_id,
-          name: product?.name || '',
-          size: sku.size,
-          color: sku.color,
-          barcode: sku.barcode,
-          image,
-          price: Number(sku.retail_price||0),
-          quantity,
-          amount: +(Number(sku.retail_price||0) * Number(quantity)).toFixed(2),
-        })
-      }
+      try{
+        const { data } = await http.get(`/api/catalog/sku/${it.sku_id}`)
+        if(data?.success){
+          const { sku, product } = data.data
+          const mainMedia = product?.media?.find?.((m:any)=>m.is_main) || product?.media?.[0]
+          const image = normalizeImage(mainMedia?.url || product?.image_url)
+          const quantity = it.quantity
+          list.push({
+            sku_id: sku.id,
+            product_id: sku.product_id,
+            name: product?.name || '',
+            size: sku.size,
+            color: sku.color,
+            barcode: sku.barcode,
+            image,
+            price: Number(sku.retail_price||0),
+            quantity,
+            amount: +(Number(sku.retail_price||0) * Number(quantity)).toFixed(2),
+          })
+        }
+      }catch{ /* 单个 SKU 失败跳过 */ }
     }
     details.value = list
   } finally { loading.value = false }
@@ -146,11 +165,18 @@ async function setDefault(id:number){
 }
 
 async function createAddress(){
-  const { data } = await http.post('/api/addresses', addrForm.value)
-  if(data?.success){
-    ElMessage.success('已保存')
-    showAddr.value = false
-    load()
+  try{
+    const { data } = await http.post('/api/addresses', addrForm.value)
+    if(data?.success){
+      ElMessage.success('已保存')
+      showAddr.value = false
+      await load()
+    } else {
+      ElMessage.error(data?.message || '保存失败')
+    }
+  }catch(e:any){
+    const msg = e?.response?.status === 401 ? '未登录或会话已过期，请先登录' : (e?.response?.data?.message || '保存失败，稍后重试')
+    ElMessage.error(msg)
   }
 }
 

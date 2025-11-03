@@ -66,6 +66,12 @@ const routes = [
     name: 'Addresses',
     component: () => import('@/views/Addresses.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/wallet',
+    name: 'Wallet',
+    component: () => import('@/views/Wallet.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

@@ -8,14 +8,83 @@ const HOST = process.env.HOST || '0.0.0.0';
 const isDev = (process.env.NODE_ENV || 'development') !== 'production';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3004;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 诊断端点：查看当前进程、工作目录、加载文件
+app.get('/__whoami', (_req, res) => {
+  res.json({
+    pid: process.pid,
+    cwd: process.cwd(),
+    file: __filename,
+    env: { PORT: process.env.PORT, HOST: process.env.HOST, NODE_ENV: process.env.NODE_ENV },
+    t: Date.now()
+  });
+});
+
+// 诊断端点：列出已注册路由（仅调试用途）
+app.get('/__routes', (_req, res) => {
+  try {
+    const routes = [];
+    const walk = (stack, prefix = '') => {
+      for (const layer of stack) {
+        if (layer.route && layer.route.path) {
+          routes.push({ path: prefix + layer.route.path, methods: Object.keys(layer.route.methods) });
+        } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
+          const p = layer.regexp && layer.regexp.fast_star ? '*' : (layer.regexp && layer.regexp.source) || '';
+          // 尝试从正则里推断前缀（简化显示）
+          const m = String(layer.regexp).match(/\^\\\/(.*?)\\\/?\?\$/);
+          const sub = m && m[1] ? '/' + m[1] : '';
+          walk(layer.handle.stack, prefix + sub);
+        }
+      }
+    };
+    if (app && app._router && app._router.stack) walk(app._router.stack, '');
+    res.json({ ok: true, count: routes.length, routes });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// 立即提供 /api/_ping 探针（优先于任何其他中间件），用于确认 /api 前缀是否可达
+app.get('/api/_ping', (req, res) => {
+  res.json({ ok: true, t: Date.now() });
+});
+
+// 接入真实数据库健康检查
+const { testConnection } = require('./config/database');
+
+// 替换：API 健康检查，返回数据库连通性
+app.get('/api/health', async (_req, res) => {
+  try {
+    const db = await testConnection();
+    res.json({ ok: true, db: db ? 'connected' : 'disconnected', time: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ ok: false, db: 'error', error: e.message });
+  }
+});
+
+// 移除占位版本的统计概览与 /api/* 兜底（接入真实路由）
+
+// 挂载真实 API 路由（recovery 已恢复到 ./routes，并包含 index.js 聚合）
+try {
+  const apiRouter = require('./routes');
+  app.use('/api', apiRouter);
+  console.log('✅ 已挂载真实 API 路由 (/api)');
+} catch (e) {
+  console.warn('⚠️ 挂载真实 API 路由失败，检查 ./routes 是否完整：', e.message);
+}
+
 // Health check
 app.get('/health', (_req, res) => {
   res.status(200).send('OK');
+});
+
+// 临时调试：直接在应用层提供 /api/__debug，验证 /api 前缀是否工作
+app.get('/api/__debug', (_req, res) => {
+  res.json({ ok: true, note: 'api prefix works at app level' });
 });
 
 // Serve public assets at root
@@ -102,9 +171,9 @@ if (isDev) {
     const h = req.headers.host || '';
     const p = req.path || req.url || '';
     if (p.startsWith('/admin') && !p.startsWith('/admin-static')) {
-      if (!h.endsWith(':5173')) return res.redirect(302, 'http://localhost:5173/');
+      if (!h.endsWith(':9000')) return res.redirect(302, 'http://localhost:9000/');
     } else if (p.startsWith('/shop') && !p.startsWith('/shop-static')) {
-      if (!h.endsWith(':5175')) return res.redirect(302, 'http://localhost:5175/');
+      if (!h.endsWith(':5173')) return res.redirect(302, 'http://localhost:5173/');
     }
     return next();
   });
@@ -140,6 +209,7 @@ app.get('/', (req, res, next) => {
     <p>服务已启动。可访问：</p>
     <ul>
       <li>健康检查: <a href="/health">/health</a></li>
+      <li>API 健康: <a href="/api/health">/api/health</a></li>
       <li>管理后台: <a href="/admin/">/admin/</a>（如已构建 dist）</li>
       <li>商城前台: <a href="/shop/">/shop/</a>（如已构建 dist）</li>
       <li>静态目录: <code>/public</code></li>
@@ -171,7 +241,16 @@ async function findAvailablePort(startPort, maxTries = 20, host = HOST) {
 }
 
 (async () => {
-  const desired = Number(process.env.PORT || 3000) || 3000;
+  // 优先命令行参数，其次环境变量，最后默认 3004
+  const argvPort = Number(process.argv[2]);
+  const envPort = Number(process.env.PORT);
+  const desired = (Number.isFinite(argvPort) && argvPort > 0)
+    ? argvPort
+    : ((Number.isFinite(envPort) && envPort > 0) ? envPort : 3004);
+  const source = (Number.isFinite(argvPort) && argvPort > 0)
+    ? 'argv'
+    : ((Number.isFinite(envPort) && envPort > 0) ? 'env' : 'default');
+
   const free = await findAvailablePort(desired, 50, HOST);
   const chosen = free ?? 0; // 0 表示让系统分配
   if (free !== null && free !== desired) {
@@ -181,7 +260,7 @@ async function findAvailablePort(startPort, maxTries = 20, host = HOST) {
   }
   const server = app.listen(chosen, HOST, () => {
     const actual = server.address().port;
-    console.log(`✅ Server listening on http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${actual}`);
+    console.log(`✅ Server listening on http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${actual} (source=${source})`);
   });
   server.on('error', (err) => {
     console.error('Server error:', err);

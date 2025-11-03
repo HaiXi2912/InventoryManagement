@@ -220,9 +220,10 @@ router.post('/register', async (req, res) => {
     // 生成平台唯一客户编码（仅英文与数字），如 CU000123
     const platformCode = `CU${String(user.id).padStart(6, '0')}`;
 
-    // 同步创建 Customer 档案，使用相同 id，保证下游接口按 user.id 能取到客户
-    const { Customer } = require('../models');
-    await Customer.create({
+    // 同步创建 Customer 档案 + 注册赠送余额 1000
+    const { Customer, WalletTransaction } = require('../models');
+    const signupBonus = 1000.00;
+    const customer = await Customer.create({
       id: user.id,
       name: real_name || username,
       code: platformCode,
@@ -230,8 +231,24 @@ router.post('/register', async (req, res) => {
       phone,
       customer_type: 'retail',
       status: 'active',
-      wallet_balance: 0,
+      wallet_balance: signupBonus,
     }, { transaction: t });
+
+    // 记录注册赠送钱包流水
+    try {
+      await WalletTransaction.create({
+        user_id: null,
+        customer_id: customer.id,
+        change_amount: signupBonus,
+        before_balance: 0,
+        after_balance: signupBonus,
+        type: 'recharge',
+        ref_type: 'signup_bonus',
+        ref_id: user.id,
+        operator_id: null,
+        remark: '新用户注册赠送',
+      }, { transaction: t });
+    } catch (_) {}
 
     await t.commit();
     return res.status(201).json({
@@ -244,7 +261,7 @@ router.post('/register', async (req, res) => {
           email: user.email,
           real_name: user.real_name,
         },
-        customer: { code: platformCode }
+        customer: { code: platformCode, wallet_bonus: signupBonus }
       },
     });
   } catch (err) {

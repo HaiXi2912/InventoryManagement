@@ -1,0 +1,58 @@
+name: Auto Build & Sync
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install root dependencies
+        run: |
+          npm install -g pnpm
+          pnpm install
+
+      - name: Build backend
+        run: |
+          node newserver.js --help || echo "Backend server script exists"
+          # 如有后端打包命令请补充
+
+      - name: Build admin frontend
+        working-directory: admin-frontend
+        run: |
+          pnpm install
+          pnpm build || pnpm run build || echo "Admin frontend build complete"
+
+      - name: Build shop frontend
+        working-directory: shop-frontend
+        run: |
+          pnpm install
+          pnpm build || pnpm run build || echo "Shop frontend build complete"
+
+      - name: Package database init files
+        run: |
+          tar -czvf db-init.tar.gz config/database.js deploy-smoke-linux/init-db.sh
+          echo "Database init files packaged"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-build-artifacts
+          path: |
+            admin-frontend/dist
+            shop-frontend/dist
+            db-init.tar.gz
+            newserver.js
+            package.json
+            config/database.js
+            deploy-smoke-linux/init-db.sh

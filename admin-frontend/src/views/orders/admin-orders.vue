@@ -24,6 +24,10 @@ const shipDialog = ref(false)
 const shipFormRef = ref<FormInstance>()
 const shipForm = ref<{ id?: number; tracking_no: string; logistics_provider: string }>({ tracking_no: '', logistics_provider: '' })
 
+// 新增：详情弹窗
+const detailDialog = ref(false)
+const detail = ref<AdminOrderItem | null>(null)
+
 async function fetchData(){
   loading.value = true
   try{
@@ -58,6 +62,14 @@ async function markComplete(row: AdminOrderItem){
   fetchData()
 }
 
+async function openDetail(row: AdminOrderItem){
+  try{
+    const { data } = await OrdersAPI.detail(row.id)
+    detail.value = data as any
+    detailDialog.value = true
+  }catch(e:any){ ElMessage.error(e?.message||'获取详情失败') }
+}
+
 onMounted(fetchData)
 </script>
 
@@ -86,11 +98,11 @@ onMounted(fetchData)
       <el-table-column prop="pay_amount" label="应付(元)" width="110" />
       <el-table-column prop="tracking_no" label="物流单号" width="180" />
       <el-table-column prop="logistics_provider" label="承运商" width="120" />
-      <el-table-column label="操作" width="220">
+      <el-table-column label="操作" width="260">
         <template #default="{ row }">
           <el-button v-if="row.status==='paid'" size="small" type="primary" @click="openShip(row)">发货</el-button>
           <el-button v-if="row.status==='shipped'" size="small" type="success" @click="markComplete(row)">完成</el-button>
-          <el-button size="small" @click="$router.push({ name:'adminOrderDetail', query:{ id: row.id } })">详情</el-button>
+          <el-button size="small" @click="openDetail(row)">详情</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -115,6 +127,26 @@ onMounted(fetchData)
       <template #footer>
         <el-button @click="shipDialog=false">取消</el-button>
         <el-button type="primary" @click="submitShip">确定发货</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 新增：订单详情弹窗 -->
+    <el-dialog v-model="detailDialog" title="订单详情" width="720px">
+      <div v-if="detail">
+        <div style="margin-bottom:8px">订单号：{{ detail.order_no }} | 状态：{{ detail.status }} | 应付：￥{{ detail.pay_amount }}</div>
+        <el-table :data="detail.items||[]" size="small" border>
+          <el-table-column prop="product_id" label="商品ID" width="90" />
+          <el-table-column prop="sku_id" label="SKU" width="90" />
+          <el-table-column prop="name" label="名称" />
+          <el-table-column prop="size" label="尺码" width="80" />
+          <el-table-column prop="color" label="颜色" width="80" />
+          <el-table-column prop="quantity" label="数量" width="80" />
+          <el-table-column prop="price" label="单价" width="90" />
+          <el-table-column prop="amount" label="金额" width="100" />
+        </el-table>
+      </div>
+      <template #footer>
+        <el-button @click="detailDialog=false">关闭</el-button>
       </template>
     </el-dialog>
   </div>
