@@ -22,6 +22,9 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
@@ -96,6 +99,18 @@ jobs:
         with:
           name: full-release
           path: release.tar.gz
+          compression-level: 9
+
+      - name: Upload Backend
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend
+          path: |
+            newserver.js
+            package.json
+            pnpm-lock.yaml
+            config/database.js
+            deploy-smoke-linux/init-db.sh
           compression-level: 9
 
       - name: Create GitHub Release
