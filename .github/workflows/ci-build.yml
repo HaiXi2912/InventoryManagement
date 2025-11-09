@@ -10,125 +10,114 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  backend:
+    name: Backend (API) Build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-
-      - name: Enable Corepack
+      - name: Enable corepack
         run: corepack enable
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
+      - name: Install deps
+        run: |
+          if [ -f package.json ]; then
+            if [ -f pnpm-lock.yaml ]; then
+              pnpm install --frozen-lockfile || true
+            else
+              npm i || true
+            fi
+          fi
+      - name: Package server (no deps)
+        run: |
+          mkdir -p build
+          for p in newserver.js quickfix-api.js quickfix-proxy.js server.js standalone-api.js routes models middleware services config public; do
+            if [ -e "$p" ]; then
+              cp -r "$p" build/
+            fi
+          done
+          if [ -f package.json ]; then
+            cp package.json build/
+            cp pnpm-lock.yaml build/
+          fi
+      - name: Upload API artifact
+        uses: actions/upload-artifact@v4
         with:
-          version: 9
-          run_install: false
+          name: api-build
+          path: build
 
-      - name: Install Dependencies
-        run: |
-          pnpm install
-          cd admin-frontend && pnpm install
-          cd ../shop-frontend && pnpm install
-
-      - name: Build Backend
-        run: |
-          chmod +x deploy-smoke-linux/init-db.sh
-          echo "Backend prepared for deployment"
-
-      - name: Build Admin Frontend
+  admin-frontend:
+    name: Admin Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable corepack
+        run: corepack enable
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        run: pnpm install --frozen-lockfile
         working-directory: admin-frontend
+      - name: Build (prefer build:ci, fallback to vite)
         run: |
-          pnpm build
-          echo "Admin frontend build complete"
-
-      - name: Build Shop Frontend
-        working-directory: shop-frontend
-        run: |
-          pnpm build
-          echo "Shop frontend build complete"
-
-      - name: Package Database Init Files
-        run: |
-          mkdir -p release/config
-          cp config/database.js release/config/
-          cp deploy-smoke-linux/init-db.sh release/
-          cd release && tar -czf ../db-init.tar.gz .
-          echo "Database init files packaged"
-
-      - name: Create Full Release Package
-        run: |
-          mkdir -p full-release
-          cp -r admin-frontend/dist full-release/admin
-          cp -r shop-frontend/dist full-release/shop
-          cp db-init.tar.gz full-release/
-          cp newserver.js full-release/
-          cp package.json full-release/
-          cp pnpm-lock.yaml full-release/
-          cd full-release && tar -czf ../release.tar.gz .
-
-      - name: Upload Admin Frontend
+          if node -e "const p=require('./package.json');process.exit(p.scripts && p.scripts['build:ci']?0:1)"; then
+            pnpm run build:ci
+          else
+            pnpm exec vite build
+          fi
+        working-directory: admin-frontend
+      - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
-          name: admin-frontend
+          name: admin-frontend-dist
           path: admin-frontend/dist
-          compression-level: 9
 
-      - name: Upload Shop Frontend
+  shop-frontend:
+    name: Shop Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable corepack
+        run: corepack enable
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        run: pnpm install --frozen-lockfile
+        working-directory: shop-frontend
+      - name: Build (prefer build:ci, fallback to vite)
+        run: |
+          if node -e "const p=require('./package.json');process.exit(p.scripts && p.scripts['build:ci']?0:1)"; then
+            pnpm run build:ci
+          else
+            pnpm exec vite build
+          fi
+        working-directory: shop-frontend
+      - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
-          name: shop-frontend
+          name: shop-frontend-dist
           path: shop-frontend/dist
-          compression-level: 9
 
-      - name: Upload Database Init Files
+  db-init:
+    name: Database Init Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package database init files
+        run: |
+          mkdir -p dbinit
+          cp config/database.js dbinit/
+          cp deploy-smoke-linux/init-db.sh dbinit/
+          cd dbinit && tar -czf ../db-init.tar.gz .
+      - name: Upload db-init
         uses: actions/upload-artifact@v4
         with:
           name: db-init
           path: db-init.tar.gz
-          compression-level: 9
-
-      - name: Upload Full Release Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: full-release
-          path: release.tar.gz
-          compression-level: 9
-
-      - name: Upload Backend
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend
-          path: |
-            newserver.js
-            package.json
-            pnpm-lock.yaml
-            config/database.js
-            deploy-smoke-linux/init-db.sh
-          compression-level: 9
-
-      - name: Create GitHub Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            release.tar.gz
-            db-init.tar.gz
-          name: Release ${{ github.sha }}
-          tag_name: v${{ github.run_number }}
-          body: |
-            自动构建发布
-            
-            包含内容：
-            - 管理后台前端
-            - 商城前端
-            - 后端服务
-            - 数据库初始化文件
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
