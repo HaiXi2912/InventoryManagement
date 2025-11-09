@@ -1,9 +1,13 @@
-name: Auto Build & Sync
+name: Auto Build & Release
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -15,44 +19,101 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+          cache: 'pnpm'
 
-      - name: Install root dependencies
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install Dependencies
         run: |
-          npm install -g pnpm
           pnpm install
+          cd admin-frontend && pnpm install
+          cd ../shop-frontend && pnpm install
 
-      - name: Build backend
+      - name: Build Backend
         run: |
-          node newserver.js --help || echo "Backend server script exists"
-          # 如有后端打包命令请补充
+          chmod +x deploy-smoke-linux/init-db.sh
+          echo "Backend prepared for deployment"
 
-      - name: Build admin frontend
+      - name: Build Admin Frontend
         working-directory: admin-frontend
         run: |
-          pnpm install
-          pnpm build || pnpm run build || echo "Admin frontend build complete"
+          pnpm build
+          echo "Admin frontend build complete"
 
-      - name: Build shop frontend
+      - name: Build Shop Frontend
         working-directory: shop-frontend
         run: |
-          pnpm install
-          pnpm build || pnpm run build || echo "Shop frontend build complete"
+          pnpm build
+          echo "Shop frontend build complete"
 
-      - name: Package database init files
+      - name: Package Database Init Files
         run: |
-          tar -czvf db-init.tar.gz config/database.js deploy-smoke-linux/init-db.sh
+          mkdir -p release/config
+          cp config/database.js release/config/
+          cp deploy-smoke-linux/init-db.sh release/
+          cd release && tar -czf ../db-init.tar.gz .
           echo "Database init files packaged"
 
-      - name: Upload build artifacts
+      - name: Create Full Release Package
+        run: |
+          mkdir -p full-release
+          cp -r admin-frontend/dist full-release/admin
+          cp -r shop-frontend/dist full-release/shop
+          cp db-init.tar.gz full-release/
+          cp newserver.js full-release/
+          cp package.json full-release/
+          cp pnpm-lock.yaml full-release/
+          cd full-release && tar -czf ../release.tar.gz .
+
+      - name: Upload Admin Frontend
         uses: actions/upload-artifact@v4
         with:
-          name: all-build-artifacts
-          path: |
-            admin-frontend/dist
-            shop-frontend/dist
+          name: admin-frontend
+          path: admin-frontend/dist
+          compression-level: 9
+
+      - name: Upload Shop Frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: shop-frontend
+          path: shop-frontend/dist
+          compression-level: 9
+
+      - name: Upload Database Init Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-init
+          path: db-init.tar.gz
+          compression-level: 9
+
+      - name: Upload Full Release Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-release
+          path: release.tar.gz
+          compression-level: 9
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release.tar.gz
             db-init.tar.gz
-            newserver.js
-            package.json
-            config/database.js
-            deploy-smoke-linux/init-db.sh
+          name: Release ${{ github.sha }}
+          tag_name: v${{ github.run_number }}
+          body: |
+            自动构建发布
+            
+            包含内容：
+            - 管理后台前端
+            - 商城前端
+            - 后端服务
+            - 数据库初始化文件
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
